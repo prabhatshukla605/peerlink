@@ -2,6 +2,7 @@ package com.peerlink.handler;
 
 import com.peerlink.model.SignalMessage;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
@@ -55,12 +56,12 @@ public class SignalSocketHandler extends TextWebSocketHandler {
     private void handleJoinRoom(WebSocketSession session,String roomCode) throws IOException{
         WebSocketSession[] pair = rooms.get(roomCode);
 
-        if(pair==null){
-            sendDirect("ERROR",roomCode, "Room does not exists");
+        if (pair == null) {
+            sendDirect(session, new SignalMessage("ERROR", roomCode, "Room does not exist"));
             return;
         }
-        if(pair[1]!=null){
-            sendDirect("ERROR",roomCode, "Room is full");
+        if (pair[1] != null) {
+            sendDirect(session, new SignalMessage("ERROR", roomCode, "Room is full"));
             return;
         }
 
@@ -70,6 +71,51 @@ public class SignalSocketHandler extends TextWebSocketHandler {
         sendDirect(session, new SignalMessage("JOINED", roomCode, "Joined successfully"));
         // Notify initiator that the peer is present so it can produce an SDP offer
         sendDirect(pair[0], new SignalMessage("PEER_JOINED", roomCode, null));
+    }
+
+    private void relaySignal(WebSocketSession sender, SignalMessage message) throws IOException{
+        String roomCode = sessionRoomMap.get(sender.getId());
+        if(roomCode == null) return;
+
+        WebSocketSession[] pair=rooms.get(roomCode);
+        if(pair==null) return;
+
+        // Route payload to the opposite peer
+        WebSocketSession recipient = (pair[0] != null && pair[0].getId().equals(sender.getId())) ? pair[1] : pair[0];
+        if (recipient != null && recipient.isOpen()) {
+            sendDirect(recipient, message);
+        }
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        String roomCode=sessionRoomMap.remove(session.getId());
+        if (roomCode==null) return;
+
+        WebSocketSession[] pair= rooms.remove(roomCode);
+        if(pair != null){
+            WebSocketSession peer=pair[0].getId().equals(session.getId())?pair[1]:pair[0];
+
+            if(peer != null && peer.isOpen()){
+                sessionRoomMap.remove(peer.getId());
+                sendDirect(peer, new SignalMessage("PEER_LEFT", roomCode, "The remote peer disconnected"));
+            }
+        }
+    }
+
+    private void sendDirect(WebSocketSession session,SignalMessage msg) throws IOException {
+        if(session!=null && session.isOpen()){
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(msg)));
+        }
+    }
+
+    private String generateRoomCode() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        StringBuilder sb = new StringBuilder(6);
+        for (int i = 0; i < 6; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
 }
