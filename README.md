@@ -148,8 +148,3 @@ peerlink/
 - **Zero Intermediary Storage**: File contents never pass through or touch the backend server.
 - **End-to-End Encryption**: WebRTC DataChannels are encrypted by default using **DTLS** (Datagram Transport Layer Security) and **SCTP**.
 
----
-
-## 📄 License
-
-This project is open-source and available under the [MIT License](LICENSE).
