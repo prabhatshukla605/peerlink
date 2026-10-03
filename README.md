@@ -98,6 +98,7 @@ peerlink/
 
 ### 1. Start the Signaling Server (Backend)
 
+#### Option A: Using Maven Wrapper (Local)
 1. Open a terminal and navigate to the `backend` directory:
    ```bash
    cd backend
@@ -107,6 +108,17 @@ peerlink/
    ./mvnw spring-boot:run
    ```
 3. The signaling server will start listening on `ws://localhost:8080/ws/signal`.
+
+#### Option B: Using Docker
+1. Build the Docker image from the `backend` directory:
+   ```bash
+   cd backend
+   docker build -t peerlink-backend .
+   ```
+2. Run the container:
+   ```bash
+   docker run -p 8080:8080 peerlink-backend
+   ```
 
 ---
 
