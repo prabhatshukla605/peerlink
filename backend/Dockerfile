@@ -1,18 +1,15 @@
 # --- Stage 1: Build the application ---
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first to cache dependencies
-COPY mvnw pom.xml ./
-COPY .mvn .mvn
-
-# Download dependencies (cached layer)
-RUN ./mvnw dependency:go-offline -B || true
+# Copy pom.xml first to cache dependencies
+COPY pom.xml ./
+RUN mvn dependency:go-offline -B || true
 
 # Copy source code and build the executable JAR
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # --- Stage 2: Minimal runtime environment ---
 FROM eclipse-temurin:21-jre-alpine
@@ -31,3 +28,4 @@ EXPOSE 8080
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
+
