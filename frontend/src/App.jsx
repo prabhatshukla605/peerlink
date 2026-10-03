@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 
 const CHUNK_SIZE = 64 * 1024; // 64 KB per chunk
 const BUFFER_THRESHOLD = 1024 * 1024; // 1 MB high-water mark for backpressure
+const SIGNALING_URL =
+  import.meta.env.VITE_SIGNALING_URL || "ws://localhost:8080/ws/signal";
 
 const ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -31,7 +33,7 @@ export default function App() {
   // 1. Initialize WebSocket Connection
   const connectSignaling = () => {
     return new Promise((resolve) => {
-      ws.current = new WebSocket("ws://localhost:8080/ws/signal");
+      ws.current = new WebSocket(SIGNALING_URL);
 
       ws.current.onopen = () => {
         setStatus("Connected to Signaling Server");
